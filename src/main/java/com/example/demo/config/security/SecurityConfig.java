@@ -59,9 +59,7 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(STATELESS))
                 .exceptionHandling(eh -> eh
                         .authenticationEntryPoint(
-                                (request, response, ex) -> {
-                                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                                })
+                                (request, response, ex) -> response.setStatus(HttpServletResponse.SC_UNAUTHORIZED))
                         .accessDeniedHandler(
                                 (request, response, ex) -> response.setStatus(HttpServletResponse.SC_FORBIDDEN))
                 )

@@ -14,11 +14,13 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.List;
+
 @Configuration
 public class SecurityUtilsConfig {
 
-    @Value("${security.cors.allowed.origin}")
-    private String allowedOrigin;
+    @Value("${security.cors.allowed.origin-pattern}")
+    private String allowedOriginPattern;
 
     @Value("${security.cors.allowed.header}")
     private String allowedHeader;
@@ -55,7 +57,7 @@ public class SecurityUtilsConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOrigin(allowedOrigin);
+        config.setAllowedOriginPatterns(List.of(allowedOriginPattern));
         config.addAllowedHeader(allowedHeader);
         config.addAllowedMethod(allowedMethod);
 
