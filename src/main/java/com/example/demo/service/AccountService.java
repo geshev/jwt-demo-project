@@ -5,6 +5,7 @@ import com.example.demo.data.mapper.AccountMapper;
 import com.example.demo.data.model.Account;
 import com.example.demo.data.model.Role;
 import com.example.demo.data.repo.AccountRepository;
+import com.example.demo.error.AccountNotFoundException;
 import com.example.demo.error.IllegalRoleAssignmentException;
 import com.example.demo.error.InvalidPasswordUpdateException;
 import com.example.demo.utils.security.SecurityUtils;
@@ -13,7 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.security.auth.login.AccountNotFoundException;
 import java.util.List;
 import java.util.Set;
 

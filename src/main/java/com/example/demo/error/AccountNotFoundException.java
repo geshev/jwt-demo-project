@@ -1,4 +1,4 @@
 package com.example.demo.error;
 
-public class AccountNotFoundException {
+public class AccountNotFoundException extends Exception {
 }

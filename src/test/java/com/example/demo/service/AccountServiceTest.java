@@ -5,6 +5,7 @@ import com.example.demo.data.mapper.AccountMapperImpl;
 import com.example.demo.data.model.Account;
 import com.example.demo.data.model.Role;
 import com.example.demo.data.repo.AccountRepository;
+import com.example.demo.error.AccountNotFoundException;
 import com.example.demo.error.IllegalRoleAssignmentException;
 import com.example.demo.error.InvalidPasswordUpdateException;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +20,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import javax.security.auth.login.AccountNotFoundException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;

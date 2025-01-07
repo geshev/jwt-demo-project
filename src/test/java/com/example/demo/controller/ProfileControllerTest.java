@@ -5,6 +5,7 @@ import com.example.demo.data.dto.account.PasswordUpdate;
 import com.example.demo.data.dto.account.Profile;
 import com.example.demo.data.model.Account;
 import com.example.demo.data.model.Role;
+import com.example.demo.error.AccountNotFoundException;
 import com.example.demo.error.IllegalRoleAssignmentException;
 import com.example.demo.error.InvalidPasswordUpdateException;
 import com.example.demo.service.AccountService;
@@ -16,7 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import javax.security.auth.login.AccountNotFoundException;
+
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;

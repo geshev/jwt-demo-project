@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.example.demo.data.dto.account.AccountCreateRequest;
 import com.example.demo.data.dto.account.AccountInfo;
 import com.example.demo.data.dto.account.AccountUpdate;
+import com.example.demo.error.AccountNotFoundException;
 import com.example.demo.error.IllegalRoleAssignmentException;
 import com.example.demo.service.AccountService;
 import jakarta.validation.Valid;
@@ -10,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.security.auth.login.AccountNotFoundException;
 import java.util.List;
 
 @RestController

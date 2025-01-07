@@ -4,6 +4,7 @@ import com.example.demo.data.dto.security.LoginRequest;
 import com.example.demo.data.dto.security.LoginResponse;
 import com.example.demo.data.dto.security.RefreshResponse;
 import com.example.demo.data.model.Account;
+import com.example.demo.error.AccountNotFoundException;
 import com.example.demo.service.AccountService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,8 +16,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
-
-import javax.security.auth.login.AccountNotFoundException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;

@@ -3,6 +3,7 @@ package com.example.demo.controller.security;
 import com.example.demo.data.dto.security.LoginRequest;
 import com.example.demo.data.dto.security.LoginResponse;
 import com.example.demo.data.dto.security.RefreshResponse;
+import com.example.demo.error.AccountNotFoundException;
 import com.example.demo.service.security.AuthenticationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,8 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-
-import javax.security.auth.login.AccountNotFoundException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;

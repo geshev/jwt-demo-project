@@ -4,6 +4,7 @@ import com.example.demo.data.dto.account.AccountCreateRequest;
 import com.example.demo.data.dto.account.AccountInfo;
 import com.example.demo.data.dto.account.AccountUpdate;
 import com.example.demo.data.model.Role;
+import com.example.demo.error.AccountNotFoundException;
 import com.example.demo.error.IllegalRoleAssignmentException;
 import com.example.demo.service.AccountService;
 import org.junit.jupiter.api.Test;
@@ -14,7 +15,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import javax.security.auth.login.AccountNotFoundException;
 import java.util.List;
 import java.util.Set;
 
