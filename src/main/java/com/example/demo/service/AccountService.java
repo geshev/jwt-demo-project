@@ -1,14 +1,12 @@
 package com.example.demo.service;
 
-import com.example.demo.data.dto.account.AccountCreateRequest;
-import com.example.demo.data.dto.account.AccountInfo;
-import com.example.demo.data.dto.account.AccountUpdate;
-import com.example.demo.data.dto.account.Profile;
+import com.example.demo.data.dto.account.*;
 import com.example.demo.data.mapper.AccountMapper;
 import com.example.demo.data.model.Account;
 import com.example.demo.data.model.Role;
 import com.example.demo.data.repo.AccountRepository;
 import com.example.demo.error.IllegalRoleAssignmentException;
+import com.example.demo.error.InvalidPasswordUpdateException;
 import com.example.demo.utils.security.SecurityUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -85,6 +83,17 @@ public class AccountService {
         }
         accountRepository.save(account);
         return accountMapper.toInfo(account);
+    }
+
+    public void updateAccountPassword(String username, PasswordUpdate request) throws AccountNotFoundException, InvalidPasswordUpdateException {
+        Account account = findAccount(username);
+
+        if (!passwordEncoder.matches(request.oldPassword(), account.getPassword())) {
+            throw new InvalidPasswordUpdateException();
+        }
+
+        account.setPassword(passwordEncoder.encode(request.newPassword()));
+        accountRepository.save(account);
     }
 
     private void updateAccountRoles(Account account, Set<Role> rolesUpdate) throws IllegalRoleAssignmentException {

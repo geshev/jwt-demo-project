@@ -111,6 +111,11 @@ public abstract class BaseTest {
         return rest.exchange(url, HttpMethod.PUT, request, responseType);
     }
 
+    protected <T> ResponseEntity<T> patchRequest(String url, Object body, ParameterizedTypeReference<T> responseType) {
+        HttpEntity<?> request = createHttpRequest(body);
+        return rest.exchange(url, HttpMethod.PATCH, request, responseType);
+    }
+
     protected <T> ResponseEntity<T> patchRequest(String url, Object body, Class<T> responseType) {
         HttpEntity<?> request = createHttpRequest(body);
         return rest.exchange(url, HttpMethod.PATCH, request, responseType);

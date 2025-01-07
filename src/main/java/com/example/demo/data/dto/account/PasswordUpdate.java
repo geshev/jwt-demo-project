@@ -1,4 +1,6 @@
 package com.example.demo.data.dto.account;
 
-public record PasswordUpdate(String password) {
+import jakarta.validation.constraints.NotBlank;
+
+public record PasswordUpdate(@NotBlank String oldPassword, @NotBlank String newPassword) {
 }

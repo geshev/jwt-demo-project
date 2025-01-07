@@ -1,14 +1,12 @@
 package com.example.demo.service;
 
-import com.example.demo.data.dto.account.AccountCreateRequest;
-import com.example.demo.data.dto.account.AccountInfo;
-import com.example.demo.data.dto.account.AccountUpdate;
-import com.example.demo.data.dto.account.Profile;
+import com.example.demo.data.dto.account.*;
 import com.example.demo.data.mapper.AccountMapperImpl;
 import com.example.demo.data.model.Account;
 import com.example.demo.data.model.Role;
 import com.example.demo.data.repo.AccountRepository;
 import com.example.demo.error.IllegalRoleAssignmentException;
+import com.example.demo.error.InvalidPasswordUpdateException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -287,6 +285,55 @@ public class AccountServiceTest {
 
         assertThrows(AccountNotFoundException.class,
                 () -> accountService.updateAccount(TEST_USERNAME, TEST_UPDATE_ALL));
+    }
+
+    @Test
+    void testUpdatePassword() throws InvalidPasswordUpdateException, AccountNotFoundException {
+        Account accountToUpdate =
+                new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD_UPDATE, false, TEST_ROLES_UPDATE);
+        Account updatedAccount =
+                new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD, false, TEST_ROLES_UPDATE);
+
+        when(accountRepository.findByUsername(TEST_USERNAME_UPDATE)).thenReturn(Optional.of(accountToUpdate));
+        when(passwordEncoder.matches(TEST_PASSWORD_UPDATE, TEST_PASSWORD_UPDATE)).thenReturn(true);
+        when(passwordEncoder.encode(TEST_PASSWORD)).thenReturn(TEST_PASSWORD);
+
+        PasswordUpdate passwordUpdate = new PasswordUpdate(TEST_PASSWORD_UPDATE, TEST_PASSWORD);
+        accountService.updateAccountPassword(TEST_USERNAME_UPDATE, passwordUpdate);
+
+        verify(passwordEncoder, times(1)).matches(TEST_PASSWORD_UPDATE, TEST_PASSWORD_UPDATE);
+        verify(passwordEncoder, times(1)).encode(TEST_PASSWORD);
+        verify(accountRepository, times(1)).save(updatedAccount);
+    }
+
+    @Test
+    void testUpdatePasswordInvalid() {
+        Account accountToUpdate =
+                new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD_UPDATE, false, TEST_ROLES_UPDATE);
+
+        when(accountRepository.findByUsername(TEST_USERNAME_UPDATE)).thenReturn(Optional.of(accountToUpdate));
+        // here the password mismatch is set up
+        when(passwordEncoder.matches(TEST_PASSWORD_UPDATE, TEST_PASSWORD_UPDATE)).thenReturn(false);
+
+        PasswordUpdate passwordUpdate = new PasswordUpdate(TEST_PASSWORD_UPDATE, TEST_PASSWORD);
+        assertThrows(InvalidPasswordUpdateException.class,
+                () -> accountService.updateAccountPassword(TEST_USERNAME_UPDATE, passwordUpdate));
+
+        verify(passwordEncoder, times(1)).matches(TEST_PASSWORD_UPDATE, TEST_PASSWORD_UPDATE);
+        verify(passwordEncoder, never()).encode(TEST_PASSWORD);
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void testUpdatePasswordNotFound() {
+        when(accountRepository.findByUsername(TEST_USERNAME_UPDATE)).thenReturn(Optional.empty());
+
+        PasswordUpdate passwordUpdate = new PasswordUpdate(TEST_PASSWORD_UPDATE, TEST_PASSWORD);
+        assertThrows(AccountNotFoundException.class,
+                () -> accountService.updateAccountPassword(TEST_USERNAME_UPDATE, passwordUpdate));
+
+        verify(passwordEncoder, never()).encode(any());
+        verify(accountRepository, never()).save(any());
     }
 
     @Test

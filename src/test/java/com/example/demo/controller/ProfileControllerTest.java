@@ -6,6 +6,7 @@ import com.example.demo.data.dto.account.Profile;
 import com.example.demo.data.model.Account;
 import com.example.demo.data.model.Role;
 import com.example.demo.error.IllegalRoleAssignmentException;
+import com.example.demo.error.InvalidPasswordUpdateException;
 import com.example.demo.service.AccountService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,7 +32,7 @@ public class ProfileControllerTest {
     private static final Account TEST_ACCOUNT =
             new Account(null, TEST_USERNAME, null, true, TEST_ROLES);
     private static final Profile TEST_PROFILE = new Profile(TEST_USERNAME, TEST_ROLES);
-    private static final PasswordUpdate TEST_PASSWORD_UPDATE = new PasswordUpdate(TEST_PASSWORD);
+    private static final PasswordUpdate TEST_PASSWORD_UPDATE = new PasswordUpdate(TEST_USERNAME, TEST_PASSWORD);
     private static final AccountUpdate TEST_ACCOUNT_UPDATE =
             new AccountUpdate(TEST_PASSWORD, null, null);
 
@@ -63,22 +64,22 @@ public class ProfileControllerTest {
     }
 
     @Test
-    void testUpdateProfile() throws AccountNotFoundException, IllegalRoleAssignmentException {
+    void testUpdateProfile() throws AccountNotFoundException, IllegalRoleAssignmentException, InvalidPasswordUpdateException {
         ResponseEntity<Void> result = profileController.updateAccount(TEST_ACCOUNT, TEST_PASSWORD_UPDATE);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
-        verify(accountService, times(1)).updateAccount(TEST_USERNAME, TEST_ACCOUNT_UPDATE);
+        verify(accountService, times(1)).updateAccountPassword(TEST_USERNAME, TEST_PASSWORD_UPDATE);
     }
 
     @Test
-    void testUpdateProfileNotFound() throws AccountNotFoundException, IllegalRoleAssignmentException {
-        when(accountService.updateAccount(TEST_USERNAME, TEST_ACCOUNT_UPDATE))
-                .thenThrow(AccountNotFoundException.class);
+    void testUpdateProfileNotFound() throws AccountNotFoundException, IllegalRoleAssignmentException, InvalidPasswordUpdateException {
+        doThrow(AccountNotFoundException.class)
+                .when(accountService).updateAccountPassword(TEST_USERNAME, TEST_PASSWORD_UPDATE);
 
         assertThrows(AccountNotFoundException.class,
                 () -> profileController.updateAccount(TEST_ACCOUNT, TEST_PASSWORD_UPDATE));
 
-        verify(accountService, times(1)).updateAccount(TEST_USERNAME, TEST_ACCOUNT_UPDATE);
+        verify(accountService, times(1)).updateAccountPassword(TEST_USERNAME, TEST_PASSWORD_UPDATE);
     }
 }

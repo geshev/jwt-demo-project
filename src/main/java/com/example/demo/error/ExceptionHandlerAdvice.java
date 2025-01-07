@@ -22,6 +22,11 @@ public class ExceptionHandlerAdvice {
         return ResponseEntity.notFound().build();
     }
 
+    @ExceptionHandler(InvalidPasswordUpdateException.class)
+    public ResponseEntity<Void> handleInvalidPasswordUpdate() {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    }
+
     @ExceptionHandler(IllegalRoleAssignmentException.class)
     public ResponseEntity<Void> handleIllegalRoleAssignment() {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
