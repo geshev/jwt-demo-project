@@ -263,6 +263,36 @@ public class AccountCreateTest extends BaseTest {
     }
 
     @Test
+    void testCreateAccountRoot() {
+        String testUsername = NEW_ACCOUNT_USERNAME + UUID.randomUUID();
+        loginAsRoot();
+
+        Set<Role> rootRoles = Set.of(Role.ROOT);
+        AccountCreateRequest request = new AccountCreateRequest(testUsername, NEW_ACCOUNT_PASSWORD, rootRoles);
+        ResponseEntity<AccountInfo> response = postRequest(ACCOUNTS_ENDPOINT, request, AccountInfo.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isNotNull();
+
+        AccountInfo account = response.getBody();
+        assertThat(account.username()).isEqualTo(testUsername);
+        assertThat(account.enabled()).isFalse();
+        assertThat(account.roles()).isEqualTo(rootRoles);
+    }
+
+    @Test
+    void testCreateAccountRootFromAdmin() {
+        loginAsAdmin();
+
+        Set<Role> rootRoles = Set.of(Role.ROOT);
+        AccountCreateRequest request = new AccountCreateRequest(NEW_ACCOUNT_USERNAME, NEW_ACCOUNT_PASSWORD, rootRoles);
+        ResponseEntity<AccountInfo> response = postRequest(ACCOUNTS_ENDPOINT, request, AccountInfo.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNull();
+    }
+
+    @Test
     void testCreateAccountAccess() {
         AccountCreateRequest request =
                 new AccountCreateRequest(NEW_ACCOUNT_USERNAME, NEW_ACCOUNT_PASSWORD, NEW_ACCOUNT_ROLES);

@@ -76,10 +76,19 @@ public class AccountControllerTest {
     }
 
     @Test
-    void testCreateAccount() {
+    void testCreateAccount() throws IllegalRoleAssignmentException {
         ResponseEntity<AccountInfo> result = accountController.createAccount(TEST_ACCOUNT_CREATE);
 
         assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        verify(accountService, times(1)).createAccount(TEST_ACCOUNT_CREATE);
+    }
+
+    @Test
+    void testCreateAccountIllegalRoleAssignment() throws IllegalRoleAssignmentException {
+        when(accountService.createAccount(TEST_ACCOUNT_CREATE)).thenThrow(IllegalRoleAssignmentException.class);
+
+        assertThrows(IllegalRoleAssignmentException.class, () -> accountController.createAccount(TEST_ACCOUNT_CREATE));
 
         verify(accountService, times(1)).createAccount(TEST_ACCOUNT_CREATE);
     }

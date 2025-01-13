@@ -67,7 +67,12 @@ dependencies {
 	testImplementation "org.testcontainers:junit-jupiter"
 	testImplementation "org.testcontainers:postgresql"
 	testImplementation 'org.apache.httpcomponents.client5:httpclient5'
+
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	testCompileOnly 'org.projectlombok:lombok'
+
+	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.named('test') {

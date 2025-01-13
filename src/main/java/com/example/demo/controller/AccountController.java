@@ -34,7 +34,7 @@ public class AccountController {
     }
 
     @PostMapping
-    public ResponseEntity<AccountInfo> createAccount(@RequestBody @Valid AccountCreateRequest request) {
+    public ResponseEntity<AccountInfo> createAccount(@RequestBody @Valid AccountCreateRequest request) throws IllegalRoleAssignmentException {
         return ResponseEntity.status(HttpStatus.CREATED).body(accountService.createAccount(request));
     }
 

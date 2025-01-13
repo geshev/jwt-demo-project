@@ -8,19 +8,20 @@ import com.example.demo.data.repo.AccountRepository;
 import com.example.demo.error.AccountNotFoundException;
 import com.example.demo.error.IllegalRoleAssignmentException;
 import com.example.demo.error.InvalidPasswordUpdateException;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -36,6 +37,8 @@ public class AccountServiceTest {
     private static final Set<Role> TEST_ROLES = Set.of(Role.ADMIN, Role.USER);
     private static final Account TEST_ACCOUNT =
             new Account(null, TEST_USERNAME, TEST_PASSWORD, true, TEST_ROLES);
+    private static final Account TEST_ACCOUNT_CREATE =
+            new Account(null, TEST_USERNAME, TEST_PASSWORD, false, TEST_ROLES);
     private static final List<Account> TEST_ACCOUNTS = List.of(TEST_ACCOUNT, TEST_ACCOUNT, TEST_ACCOUNT);
     private static final AccountCreateRequest TEST_CREATE =
             new AccountCreateRequest(TEST_USERNAME, TEST_PASSWORD, TEST_ROLES);
@@ -75,7 +78,8 @@ public class AccountServiceTest {
         assertThat(result.roles()).isEqualTo(TEST_ROLES);
 
         verify(accountRepository, times(1)).findByUsername(TEST_USERNAME);
-        verify(accountMapper, times(1)).toInfo(TEST_ACCOUNT);
+        verify(accountMapper, times(1))
+                .toInfo(argThat(new AccountArgumentMatcher(TEST_ACCOUNT)));
     }
 
     @Test
@@ -100,7 +104,8 @@ public class AccountServiceTest {
         });
 
         verify(accountRepository, times(1)).findAll();
-        verify(accountMapper, times(TEST_ACCOUNTS.size())).toInfo(TEST_ACCOUNT);
+        verify(accountMapper, times(TEST_ACCOUNTS.size()))
+                .toInfo(argThat(new AccountArgumentMatcher(TEST_ACCOUNT)));
     }
 
     @Test
@@ -140,7 +145,8 @@ public class AccountServiceTest {
         assertThat(result.username()).isEqualTo(TEST_USERNAME);
         assertThat(result.roles()).isEqualTo(TEST_ROLES);
 
-        verify(accountMapper, times(1)).toProfile(TEST_ACCOUNT);
+        verify(accountMapper, times(1))
+                .toProfile(argThat(new AccountArgumentMatcher(TEST_ACCOUNT)));
     }
 
     @Test
@@ -153,7 +159,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    void testCreateAccount() {
+    void testCreateAccount() throws IllegalRoleAssignmentException {
         when(passwordEncoder.encode(TEST_PASSWORD)).thenReturn(TEST_PASSWORD);
 
         AccountInfo result = accountService.createAccount(TEST_CREATE);
@@ -163,16 +169,54 @@ public class AccountServiceTest {
         assertThat(result.roles()).isEqualTo(TEST_ROLES);
 
         verify(accountMapper, times(1)).fromCreateRequest(TEST_CREATE);
-        verify(accountMapper, times(1)).toInfo(TEST_ACCOUNT);
+        verify(accountMapper, times(1))
+                .toInfo(argThat(new AccountArgumentMatcher(TEST_ACCOUNT_CREATE)));
         verify(passwordEncoder, times(1)).encode(TEST_PASSWORD);
-        verify(accountRepository, times(1)).save(TEST_ACCOUNT);
+        verify(accountRepository, times(1))
+                .save(argThat(new AccountArgumentMatcher(TEST_ACCOUNT_CREATE)));
     }
 
     @Test
-    // Mockito has trouble detecting why mocking an authenticated admin is necessary
-    @MockitoSettings(strictness = Strictness.LENIENT)
-    void testUpdateAccountAll() throws AccountNotFoundException, IllegalRoleAssignmentException {
+    void testCreateAccountRoot() throws IllegalRoleAssignmentException {
+        // Mock authenticated ROOT
+        UsernamePasswordAuthenticationToken authToken = mock(UsernamePasswordAuthenticationToken.class);
+        when(authToken.getPrincipal())
+                .thenReturn(new Account(null, null, null, false, Set.of(Role.ROOT)));
+        when(authToken.isAuthenticated()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        Set<Role> rootRoles = Set.of(Role.USER, Role.ROOT);
+        Account testRootAccount = new Account(null, TEST_USERNAME, TEST_PASSWORD, false, rootRoles);
+
+        AccountCreateRequest request =
+                new AccountCreateRequest(TEST_USERNAME, TEST_PASSWORD, rootRoles);
+        when(passwordEncoder.encode(TEST_PASSWORD)).thenReturn(TEST_PASSWORD);
+
+        AccountInfo result = accountService.createAccount(request);
+
+        assertThat(result.username()).isEqualTo(TEST_USERNAME);
+        assertThat(result.enabled()).isFalse();
+        assertThat(result.roles()).isEqualTo(rootRoles);
+
+        verify(accountMapper, times(1)).fromCreateRequest(request);
+        verify(accountMapper, times(1))
+                .toInfo(argThat(new AccountArgumentMatcher(testRootAccount)));
+        verify(passwordEncoder, times(1)).encode(TEST_PASSWORD);
+        verify(accountRepository, times(1))
+                .save(argThat(new AccountArgumentMatcher(testRootAccount)));
+    }
+
+    @Test
+    void testCreateAccountRootFromAdmin() {
         mockAuthenticatedAdmin();
+        AccountCreateRequest request =
+                new AccountCreateRequest(TEST_USERNAME, TEST_PASSWORD, Set.of(Role.USER, Role.ROOT));
+
+        assertThrows(IllegalRoleAssignmentException.class, () -> accountService.createAccount(request));
+    }
+
+    @Test
+    void testUpdateAccountAll() throws AccountNotFoundException, IllegalRoleAssignmentException {
         Account accountToUpdate =
                 new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD_UPDATE, false, TEST_ROLES_UPDATE);
         Account updatedAccount = new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD, true, TEST_ROLES);
@@ -230,10 +274,7 @@ public class AccountServiceTest {
     }
 
     @Test
-    // Mockito has trouble detecting why mocking an authenticated admin is necessary
-    @MockitoSettings(strictness = Strictness.LENIENT)
     void testUpdateAccountRoles() throws AccountNotFoundException, IllegalRoleAssignmentException {
-        mockAuthenticatedAdmin();
         Account accountToUpdate =
                 new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD_UPDATE, false, TEST_ROLES_UPDATE);
         Account updatedAccount =
@@ -252,8 +293,6 @@ public class AccountServiceTest {
     }
 
     @Test
-    // Mockito has trouble detecting why mocking an authenticated admin is necessary
-    @MockitoSettings(strictness = Strictness.LENIENT)
     void testUpdateAccountAddRoot() {
         mockAuthenticatedAdmin();
         Account accountToUpdate =
@@ -266,8 +305,6 @@ public class AccountServiceTest {
     }
 
     @Test
-    // Mockito has trouble detecting why mocking an authenticated admin is necessary
-    @MockitoSettings(strictness = Strictness.LENIENT)
     void testUpdateAccountRemoveRoot() {
         mockAuthenticatedAdmin();
         Account accountToUpdate =
@@ -342,7 +379,8 @@ public class AccountServiceTest {
 
         accountService.deleteAccount(TEST_USERNAME);
 
-        verify(accountRepository, times(1)).delete(TEST_ACCOUNT);
+        verify(accountRepository, times(1))
+                .delete(argThat(new AccountArgumentMatcher(TEST_ACCOUNT)));
     }
 
     @Test
@@ -358,6 +396,21 @@ public class AccountServiceTest {
         // TEST_ACCOUNT does not have ROOT role but HAS ADMIN
         UsernamePasswordAuthenticationToken authToken = mock(UsernamePasswordAuthenticationToken.class);
         when(authToken.getPrincipal()).thenReturn(TEST_ACCOUNT);
+        when(authToken.isAuthenticated()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(authToken);
+    }
+
+    @RequiredArgsConstructor
+    private static class AccountArgumentMatcher implements ArgumentMatcher<Account> {
+
+        private final Account value;
+
+        @Override
+        public boolean matches(Account account) {
+            return Objects.equals(account.getUsername(), value.getUsername())
+                    && Objects.equals(account.getPassword(), value.getPassword())
+                    && Objects.equals(account.isEnabled(), value.isEnabled())
+                    && Objects.equals(account.getRoles(), value.getRoles());
+        }
     }
 }

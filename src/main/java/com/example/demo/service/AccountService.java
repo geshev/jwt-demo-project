@@ -63,8 +63,9 @@ public class AccountService {
         return accountMapper.toProfile(findAccount(username));
     }
 
-    public AccountInfo createAccount(AccountCreateRequest request) {
+    public AccountInfo createAccount(AccountCreateRequest request) throws IllegalRoleAssignmentException {
         Account newAccount = accountMapper.fromCreateRequest(request);
+        verifyRootRequester(newAccount.getRoles().contains(ROOT));
         newAccount.setPassword(passwordEncoder.encode(newAccount.getPassword()));
         accountRepository.save(newAccount);
         return accountMapper.toInfo(newAccount);
@@ -98,14 +99,18 @@ public class AccountService {
 
     private void updateAccountRoles(Account account, Set<Role> rolesUpdate) throws IllegalRoleAssignmentException {
         // Detect if there is an update that involves the ROOT role using XOR
-        if (rolesUpdate.contains(ROOT) ^ account.getRoles().contains(ROOT)) {
-            // ROOT role can only be changed by users with ROOT role
+        verifyRootRequester(rolesUpdate.contains(ROOT) ^ account.getRoles().contains(ROOT));
+        account.setRoles(rolesUpdate);
+    }
+
+    private void verifyRootRequester(boolean isRootRequired) throws IllegalRoleAssignmentException {
+        if (isRootRequired) {
+            // ROOT role can only be assigned/removed by users with ROOT role
             Account requester = SecurityUtils.getAuthenticatedAccount();
             if (requester == null || !requester.getRoles().contains(ROOT)) {
                 throw new IllegalRoleAssignmentException();
             }
         }
-        account.setRoles(rolesUpdate);
     }
 
     public void deleteAccount(String username) throws AccountNotFoundException {
