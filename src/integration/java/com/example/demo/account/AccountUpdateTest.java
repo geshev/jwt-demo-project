@@ -135,17 +135,37 @@ public class AccountUpdateTest extends BaseTest {
     }
 
     @Test
-    void testUpdateAccountAdminRemoveRoot() {
-        loginAsAdmin();
+    void testUpdateAccountRootAddRemoveRoot() {
+        loginAsRoot();
 
-        AccountUpdate removeRootRequest =
-                new AccountUpdate(null, null, Set.of(Role.ADMIN, Role.USER));
+        // test add ROOT role
+        Set<Role> rolesWithRoot = Set.of(Role.ROOT, Role.ADMIN, Role.USER);
+        AccountUpdate addRootRequest =
+                new AccountUpdate(null, null, rolesWithRoot);
 
         ResponseEntity<AccountInfo> response =
-                patchRequest(ACCOUNT_ENDPOINT + ROOT_USERNAME, removeRootRequest, AccountInfo.class);
+                patchRequest(ACCOUNT_ENDPOINT + TEST_USERNAME, addRootRequest, AccountInfo.class);
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(response.getBody()).isNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+
+        AccountInfo account = response.getBody();
+        assertThat(account.username()).isEqualTo(TEST_USERNAME);
+        assertThat(account.enabled()).isFalse();
+        assertThat(account.roles()).isEqualTo(rolesWithRoot);
+
+        // test remove ROOT role
+        AccountUpdate restoreRequest =
+                new AccountUpdate(null, null, TEST_ROLES);
+        response = patchRequest(ACCOUNT_ENDPOINT + TEST_USERNAME, restoreRequest, AccountInfo.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+
+        account = response.getBody();
+        assertThat(account.username()).isEqualTo(TEST_USERNAME);
+        assertThat(account.enabled()).isFalse();
+        assertThat(account.roles()).isEqualTo(TEST_ROLES);
     }
 
     @ParameterizedTest
@@ -158,6 +178,20 @@ public class AccountUpdateTest extends BaseTest {
 
         ResponseEntity<AccountInfo> response =
                 patchRequest(ACCOUNT_ENDPOINT + testUser, addRootRequest, AccountInfo.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNull();
+    }
+
+    @Test
+    void testUpdateAccountAdminRemoveRoot() {
+        loginAsAdmin();
+
+        AccountUpdate removeRootRequest =
+                new AccountUpdate(null, null, Set.of(Role.ADMIN, Role.USER));
+
+        ResponseEntity<AccountInfo> response =
+                patchRequest(ACCOUNT_ENDPOINT + ROOT_USERNAME, removeRootRequest, AccountInfo.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(response.getBody()).isNull();

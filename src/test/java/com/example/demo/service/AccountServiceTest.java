@@ -178,13 +178,7 @@ public class AccountServiceTest {
 
     @Test
     void testCreateAccountRoot() throws IllegalRoleAssignmentException {
-        // Mock authenticated ROOT
-        UsernamePasswordAuthenticationToken authToken = mock(UsernamePasswordAuthenticationToken.class);
-        when(authToken.getPrincipal())
-                .thenReturn(new Account(null, null, null, false, Set.of(Role.ROOT)));
-        when(authToken.isAuthenticated()).thenReturn(true);
-        SecurityContextHolder.getContext().setAuthentication(authToken);
-
+        mockAuthenticatedRoot();
         Set<Role> rootRoles = Set.of(Role.USER, Role.ROOT);
         Account testRootAccount = new Account(null, TEST_USERNAME, TEST_PASSWORD, false, rootRoles);
 
@@ -230,8 +224,10 @@ public class AccountServiceTest {
         assertThat(result.roles()).isEqualTo(TEST_ROLES);
 
         verify(passwordEncoder, times(1)).encode(TEST_PASSWORD);
-        verify(accountRepository, times(1)).save(updatedAccount);
-        verify(accountMapper, times(1)).toInfo(updatedAccount);
+        verify(accountRepository, times(1))
+                .save(argThat(new AccountArgumentMatcher(updatedAccount)));
+        verify(accountMapper, times(1))
+                .toInfo(argThat(new AccountArgumentMatcher(updatedAccount)));
     }
 
     @Test
@@ -250,8 +246,10 @@ public class AccountServiceTest {
         assertThat(result.roles()).isEqualTo(TEST_ROLES_UPDATE);
 
         verify(passwordEncoder, times(1)).encode(TEST_PASSWORD);
-        verify(accountRepository, times(1)).save(updatedAccount);
-        verify(accountMapper, times(1)).toInfo(updatedAccount);
+        verify(accountRepository, times(1))
+                .save(argThat(new AccountArgumentMatcher(updatedAccount)));
+        verify(accountMapper, times(1))
+                .toInfo(argThat(new AccountArgumentMatcher(updatedAccount)));
     }
 
     @Test
@@ -269,8 +267,10 @@ public class AccountServiceTest {
         assertThat(result.roles()).isEqualTo(TEST_ROLES_UPDATE);
 
         verify(passwordEncoder, never()).encode(any());
-        verify(accountRepository, times(1)).save(updatedAccount);
-        verify(accountMapper, times(1)).toInfo(updatedAccount);
+        verify(accountRepository, times(1))
+                .save(argThat(new AccountArgumentMatcher(updatedAccount)));
+        verify(accountMapper, times(1))
+                .toInfo(argThat(new AccountArgumentMatcher(updatedAccount)));
     }
 
     @Test
@@ -288,12 +288,39 @@ public class AccountServiceTest {
         assertThat(result.roles()).isEqualTo(TEST_ROLES);
 
         verify(passwordEncoder, never()).encode(any());
-        verify(accountRepository, times(1)).save(updatedAccount);
-        verify(accountMapper, times(1)).toInfo(updatedAccount);
+        verify(accountRepository, times(1))
+                .save(argThat(new AccountArgumentMatcher(updatedAccount)));
+        verify(accountMapper, times(1))
+                .toInfo(argThat(new AccountArgumentMatcher(updatedAccount)));
     }
 
     @Test
-    void testUpdateAccountAddRoot() {
+    void testUpdateAccountAddRoot() throws IllegalRoleAssignmentException, AccountNotFoundException {
+        mockAuthenticatedRoot();
+
+        Set<Role> rootRole = Set.of(Role.ROOT);
+        Account accountToUpdate =
+                new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD_UPDATE, true, TEST_ROLES);
+        Account updatedAccount =
+                new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD_UPDATE, true, rootRole);
+
+        when(accountRepository.findByUsername(TEST_USERNAME_UPDATE)).thenReturn(Optional.of(accountToUpdate));
+
+        AccountUpdate addRootUpdate = new AccountUpdate(null, null, rootRole);
+        AccountInfo result = accountService.updateAccount(TEST_USERNAME_UPDATE, addRootUpdate);
+        assertThat(result.username()).isEqualTo(TEST_USERNAME_UPDATE);
+        assertThat(result.enabled()).isTrue();
+        assertThat(result.roles()).isEqualTo(rootRole);
+
+        verify(passwordEncoder, never()).encode(any());
+        verify(accountRepository, times(1))
+                .save(argThat(new AccountArgumentMatcher(updatedAccount)));
+        verify(accountMapper, times(1))
+                .toInfo(argThat(new AccountArgumentMatcher(updatedAccount)));
+    }
+
+    @Test
+    void testUpdateAccountAddRootFromAdmin() {
         mockAuthenticatedAdmin();
         Account accountToUpdate =
                 new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD_UPDATE, true, TEST_ROLES);
@@ -305,7 +332,32 @@ public class AccountServiceTest {
     }
 
     @Test
-    void testUpdateAccountRemoveRoot() {
+    void testUpdateAccountRemoveRoot() throws IllegalRoleAssignmentException, AccountNotFoundException {
+        mockAuthenticatedRoot();
+
+        Set<Role> adminRole = Set.of(Role.ADMIN);
+        Account accountToUpdate =
+                new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD_UPDATE, true, Set.of(Role.ROOT));
+        Account updatedAccount =
+                new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD_UPDATE, true, adminRole);
+
+        when(accountRepository.findByUsername(TEST_USERNAME_UPDATE)).thenReturn(Optional.of(accountToUpdate));
+
+        AccountUpdate addRootUpdate = new AccountUpdate(null, null, adminRole);
+        AccountInfo result = accountService.updateAccount(TEST_USERNAME_UPDATE, addRootUpdate);
+        assertThat(result.username()).isEqualTo(TEST_USERNAME_UPDATE);
+        assertThat(result.enabled()).isTrue();
+        assertThat(result.roles()).isEqualTo(adminRole);
+
+        verify(passwordEncoder, never()).encode(any());
+        verify(accountRepository, times(1))
+                .save(argThat(new AccountArgumentMatcher(updatedAccount)));
+        verify(accountMapper, times(1))
+                .toInfo(argThat(new AccountArgumentMatcher(updatedAccount)));
+    }
+
+    @Test
+    void testUpdateAccountRemoveRootFromAdmin() {
         mockAuthenticatedAdmin();
         Account accountToUpdate =
                 new Account(null, TEST_USERNAME_UPDATE, TEST_PASSWORD_UPDATE, true, Set.of(Role.ROOT));
@@ -340,7 +392,8 @@ public class AccountServiceTest {
 
         verify(passwordEncoder, times(1)).matches(TEST_PASSWORD_UPDATE, TEST_PASSWORD_UPDATE);
         verify(passwordEncoder, times(1)).encode(TEST_PASSWORD);
-        verify(accountRepository, times(1)).save(updatedAccount);
+        verify(accountRepository, times(1))
+                .save(argThat(new AccountArgumentMatcher(updatedAccount)));
     }
 
     @Test
@@ -396,6 +449,14 @@ public class AccountServiceTest {
         // TEST_ACCOUNT does not have ROOT role but HAS ADMIN
         UsernamePasswordAuthenticationToken authToken = mock(UsernamePasswordAuthenticationToken.class);
         when(authToken.getPrincipal()).thenReturn(TEST_ACCOUNT);
+        when(authToken.isAuthenticated()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+    }
+
+    private void mockAuthenticatedRoot() {
+        UsernamePasswordAuthenticationToken authToken = mock(UsernamePasswordAuthenticationToken.class);
+        when(authToken.getPrincipal())
+                .thenReturn(new Account(null, null, null, false, Set.of(Role.ROOT)));
         when(authToken.isAuthenticated()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(authToken);
     }
